@@ -1,0 +1,4 @@
+tensorflow-gpu==2.10.1
+keras==2.10.0
+protobuf==3.19.6
+tensorboard==2.10.1
