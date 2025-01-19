@@ -173,7 +173,7 @@ For questions or suggestions, feel free to contact:
 
 - **Name**: [Manikanta]
 - **Email**: [manikantabalaji14@gmail.com]
-- **GitHub**: []
+- **GitHub**: [https://github.com/manikan2848y/WasteFlask]
 
 ---
 
