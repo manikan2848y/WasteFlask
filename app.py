@@ -1,4 +1,4 @@
-import os
+'''import os
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.applications.densenet import DenseNet121, preprocess_input, decode_predictions
@@ -206,5 +206,109 @@ def predict():
 
 if __name__ == '__main__':
     app.run(debug=True)
+    '''
+
+
+import streamlit as st
+import tensorflow as tf
+import numpy as np
+import cv2
+from tensorflow.keras.applications.densenet import preprocess_input, decode_predictions
+from tensorflow.keras.preprocessing import image
+from PIL import Image
+
+# Load the pre-trained DenseNet model
+@st.cache_resource
+def load_model():
+    return tf.keras.applications.DenseNet121(weights='imagenet')
+
+model = load_model()
+
+# Recyclable vs Non-recyclable classes
+RECYCLABLE_CLASSES = {
+    "shovel": True, "paper_towel": True, "packet": True, "envelope": True, "crossword_puzzle": True,
+    "wine_bottle": True, "plastic_bottle": False, "glass_bottle": True, "cardboard": True,
+    "carton": True, "metal_can": True, "paper": True, "plastic_bag": False, "food_waste": False,
+    "electronics": False, "clothing": False,
+}
+
+# Image preprocessing
+def preprocess_image(img_path):
+    img = image.load_img(img_path, target_size=(224, 224))
+    img_array = image.img_to_array(img)
+    img_array = np.expand_dims(img_array, axis=0)
+    return preprocess_input(img_array)
+
+# Prediction and recyclability
+def predict_and_check(img_path):
+    img_array = preprocess_image(img_path)
+    predictions = model.predict(img_array)
+    decoded_preds = decode_predictions(predictions, top=1)[0]
+    class_name, confidence = decoded_preds[0][1], decoded_preds[0][2]
+    recyclable = RECYCLABLE_CLASSES.get(class_name, False)
+    return class_name, confidence, recyclable
+
+# Grad-CAM for explainability
+def apply_grad_cam(img_path):
+    img_array = preprocess_image(img_path)
+    grad_model = tf.keras.Model(
+        [model.input], [model.get_layer("conv5_block16_2_conv").output, model.output]
+    )
+    with tf.GradientTape() as tape:
+        conv_outputs, predictions = grad_model(img_array)
+        pred_index = tf.argmax(predictions[0])
+        loss = predictions[:, pred_index]
+    grads = tape.gradient(loss, conv_outputs)
+    pooled_grads = tf.reduce_mean(grads, axis=(0, 1, 2))
+    heatmap = tf.reduce_sum(tf.multiply(pooled_grads, conv_outputs[0]), axis=-1)
+    heatmap = tf.maximum(heatmap, 0) / tf.math.reduce_max(heatmap)
+    return heatmap.numpy()
+
+def overlay_heatmap(original_img, heatmap, alpha=0.4):
+    img = cv2.imread(original_img)
+    heatmap = cv2.resize(heatmap, (img.shape[1], img.shape[0]))
+    heatmap = np.uint8(255 * heatmap)
+    heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
+    overlayed_img = cv2.addWeighted(img, 1 - alpha, heatmap, alpha, 0)
+    return overlayed_img
+
+# Streamlit UI
+st.sidebar.title("Waste Classification with Explainable AI")
+app_mode = st.sidebar.selectbox("Select Page", ["HOME", "CLASSIFICATION & EXPLAINABILITY"])
+
+if app_mode == "HOME":
+    st.title("Waste Classification with Explainable AI")
+   # st.image("C:/Users/saisa/Plant_disease_new/Diseases.png", use_column_width=True)  # Updated path to your image
+    st.image("C:/Users/saisa/Plant_disease_new/Diseases.png", caption="Use the Waste", use_container_width=True)  # Updated parameter
+
+    st.write("""
+    This application helps classify waste items and provides insights using Grad-CAM 
+    for explainability. Upload an image to see predictions and recyclability information.
+    """)
+
+elif app_mode == "CLASSIFICATION & EXPLAINABILITY":
+    st.header("Waste Classification")
+    uploaded_image = st.file_uploader("Upload a waste image:", type=["jpg", "jpeg", "png"])
+
+    if uploaded_image:
+        img_path = "uploaded_image.jpg"
+        img = Image.open(uploaded_image)
+        img.save(img_path)
+
+        st.image(img, caption="Uploaded Image", use_column_width=True)
+
+        if st.button("Classify"):
+            st.write("Classifying...")
+            class_name, confidence, recyclable = predict_and_check(img_path)
+            st.success(f"Class: {class_name} | Confidence: {confidence:.2f}")
+            st.info(f"Recyclable: {'Yes' if recyclable else 'No'}")
+
+        if st.button("Explain with Grad-CAM"):
+            st.write("Generating Grad-CAM visualization...")
+            heatmap = apply_grad_cam(img_path)
+            overlayed_img = overlay_heatmap(img_path, heatmap)
+            st.image(overlayed_img, caption="Grad-CAM Visualization", use_column_width=True)
+
+
 
 
