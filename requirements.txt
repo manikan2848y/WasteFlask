@@ -1,4 +1,11 @@
+<<<<<<< HEAD
 tensorflow-gpu==2.10.1
 keras==2.10.0
 protobuf==3.19.6
 tensorboard==2.10.1
+=======
+tensorflow-gpu==2.10.1
+keras==2.10.0
+protobuf==3.19.6
+tensorboard==2.10.1
+>>>>>>> d9773ea87d3bb53374440aa4d52c537cb398b894
