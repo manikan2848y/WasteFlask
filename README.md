@@ -1,4 +1,4 @@
-# Waste Classification Project
+# Waste Classification Using Explainable AI(XAI)
 
 ## Overview
 
