@@ -57,7 +57,7 @@ project-root/
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/yourusername/waste-classification.git
+   git clone https://github.com/manikan2848y/waste-classification.git
    cd waste-classification
    ```
 
